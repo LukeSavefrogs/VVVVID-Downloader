@@ -16,9 +16,14 @@ from colorama import Fore, Back, Style
 import vvvvid_scraper
 from text_utility import os_fix_filename
 
+import sys
+
+import argparse
+
 # Defining Download folder
 current_dir = os.path.dirname(os.path.realpath(__file__))
 dl_dir = os.path.join(current_dir, "Downloads")
+dl_links_file = os.path.join(current_dir, "downloads_list.txt")
 
 
 def dl_from_vvvvid(url, requests_obj, ffmpeg_local=''):
@@ -111,10 +116,72 @@ def dl_from_vvvvid(url, requests_obj, ffmpeg_local=''):
 			with YoutubeDL(ydl_opts) as ydl:
 			    ydl.download([ep_url])
 
+# Using the package argparse, adds an ArgumentParser and help (try `python main.py -h` or `python main.py --help`)
+def addArgumentParser():
+	global dl_dir
+	global dl_links_file
+
+	parser = argparse.ArgumentParser(
+		prog='VVVVID-Downloader', 
+		description='Un piccolo script in Python3 per scaricare contenuti multimediali (non a pagamento) offerti da VVVVID. ' +
+					'Inserisci i link degli episodi che vuoi scaricare (episodio singolo o serie) nel file \'downloads_list.txt\'',
+		epilog='Homepage del progetto: https://github.com/CoffeeStraw/VVVVID-Downloader',
+		add_help=False
+	)
+	parser.add_argument(
+		'-o', 
+		'--output-directory', 
+		type=str, 
+		dest='output_dir',
+		help='Definisce la cartella di output (default=' + dl_dir + ')'
+	)
+	parser.add_argument(
+		'-i', 
+		'--links-file', 
+		type=str, 
+		dest='input_links_file',
+		help='Definisce il file da cui prendere i link (default=' + dl_links_file + ')'
+	)
+	parser.add_argument(
+		'-h', 
+		'--help', 
+		action='help',
+		help='Mostra questa schermata di aiuto ed esce'
+	)
+	args = parser.parse_args()
+
+	if args.output_dir and args.output_dir.strip() != "":
+		dl_dir = args.output_dir.strip()
+		print("[VVVVID-Downloader] %sCambiata directory di output%s: %s" % (
+				Fore.GREEN,
+				Style.RESET_ALL,
+				dl_dir
+			)
+		)
+	if args.input_links_file and args.input_links_file.strip() != "":
+		dl_links_file = args.input_links_file.strip()
+		if not os.path.exists(dl_links_file):
+			print("%s[VVVVID-Downloader]%s Il file specificato non esiste: %s" % (
+					Fore.RED,
+					Style.RESET_ALL,
+					dl_links_file
+				)
+			)
+			sys.exit(1)
+			
+		print("%s[VVVVID-Downloader]%s Cambiato file di input link: %s\n" % (
+				Fore.GREEN,
+				Style.RESET_ALL,
+				dl_links_file
+			)
+		)
 
 def main():
 	# Getting Colorama utility ready to work
 	colorama_init(autoreset=True)
+
+	# Checks if there are special parameters passed to the script (-h/-o)
+	addArgumentParser()
 
 	# Printing warning if on Windows
 	if system() == 'Windows':
@@ -163,11 +230,17 @@ def main():
 			quit()
 
 	# Get anime list from local file, ignoring commented lines and empty lines
-	with open("downloads_list.txt", 'r') as f:
+	with open(dl_links_file, 'r') as f:
 		for line in f:
 			line = line.strip() + '/'
 			if not line.startswith('#') and line != "/":
 				dl_from_vvvvid(line, requests_obj, ffmpeg_local)
+		else:
+			print("%s[VVVVID-Downloader]%s Lettura link terminata\n" % (
+				Fore.GREEN,
+				Style.RESET_ALL
+			)
+		)
 
 
 
